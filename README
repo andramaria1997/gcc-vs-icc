@@ -1,0 +1,81 @@
+Andra-Maria DANCIU
+335CB
+
+                                   README
+
+
+ [*] CASE STUDY: Implemented this math matrix operation multiple ways, testing
+different optimization methods:
+
+---------------------  C = (zerotr(A^t * B + B^t * A))^2  ---------------------
+
+[!] Run plot.sh for compiling, running and creating graphics: ./plot.sh
+[!] Running times are found in $(IMPLEMENTATION)_$(CC)_plot files:
+    - test 1: 400 x 400 matrices
+    - test 2: 1000 x 1000 matrices
+    - test 3: 1600 x 1600 matrices
+
+# NEOPT (unoptimized implementation):
+-------------------------------------
+~~> Basic matrix multiply implementation, using only one math tranposed matrix
+    property: (A*B)^t = B^t * A^t and iterating the matrices minimally(only the
+    elements necesary in computing the result)
+~~> Steps: * compute A^t * B
+           * add result with its own transpose
+           * compute square of upper part of the matrix, only iteraring through
+             elements that are not multiplied with 0 (minimal coverage)
+
+
+# OPT_M (manually optimized implementation):
+--------------------------------------------
+~~> transpose A and B matrices before multiplying, in order to reduce number of
+    cache misses
+~~> iterate through matrices using pointers, so that address of any element of
+    any matrix is not computed (reduce number of CPU operations)
+~~> computed each element of result matrix in a separate variable stored in a
+    register, reducing memory accesses and cache misses
+
+
+# OPT_F (optimized using compile flags):
+----------------------------------------
+~~> for gcc: -Ofast (aggresive speed optimization)
+~~> for icc: -Ofast (aggresive speed optimization)
+             -no-prec-div (give slightly less precise results than full IEEE
+                                  division for speed improving)
+             -ansi-alias (optimize more aggressively assuming that the program
+                            adheres to ISO C Standard aliasability rules)
+             -xHOST (generic host's CPU optimizations)
+
+
+# BLAS (implemented using CBLAS library):
+-----------------------------------------
+~~> used DSYR2K function:
+	C <- zerotr(alpha * (A)^t * B + alpha * (B)^t * A + beta * C)
+	(in this case: alpha = 1.0, beta = 0.0)
+~~> used DGEMM function:
+	A <- A * B (in this case: B = A => compute square of matrix)
+
+
+# GCC vs ICC:
+-------------
+~~> without any optimization flags, gcc performs slightly better than icc on
+    manually optimized version; both icc and gcc get the same results on blas
+    implementation, probably because the performance of this computing method
+    comes from the library implementation itself and there is nothing left for
+    the compiler to optimize
+~~> however, when using optimization flags, icc is a lot more performant than
+    gcc, probably because it uses aggresive CPU specific Intel-targetted
+    optimizations (got over 90% faster results - really close to BLAS version)
+
+
+# NEOPT vs OPT_M vs OPT_F vs BLAS:
+----------------------------------
+~~> as expected, unoptimized version has slow runtime results (the same on both
+    compilers)
+~~> even though flag optimization gets really close to manual optimization,
+    there is no way for the compiler to predict cache misses coming from bad
+    written code (in case of gcc, without Intel specific CPU targetted
+    optimizations)
+~~> BLAS version clearly beats the performance of any other optimization method
+    (manually or compiler flag); this result was expected due to the fact that
+    this library was created specifically for this purpose (vectorial calculus)
